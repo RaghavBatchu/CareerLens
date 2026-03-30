@@ -1,129 +1,410 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 
+/* ─── Types ──────────────────────────────────────────────── */
 const features = [
-  { icon: '📊', title: 'Resume Scoring', desc: 'AI-powered match score vs any job description using semantic analysis.' },
-  { icon: '✨', title: 'AI Enhancer', desc: 'Rewrite resume sections with stronger verbs and JD-aligned keywords.' },
-  { icon: '🧬', title: 'Culture Fit', desc: 'Discover your ideal company archetype via a 12-question personality quiz.' },
-  { icon: '🗺️', title: 'Career Roadmap', desc: 'Get a personalised 30/60/90-day skill-building plan powered by Gemini AI.' },
+  {
+    num: '01',
+    title: 'Resume Score',
+    desc: 'Two-stage analysis using TF-IDF keyword matching and BERT semantic similarity. Know exactly where you stand.',
+    stat: 'Up to 94% match accuracy',
+  },
+  {
+    num: '02',
+    title: 'AI Enhancer',
+    desc: 'Section-by-section rewriting with stronger action verbs, quantified metrics, and natural keyword insertion.',
+    stat: 'Powered by Gemini Flash',
+  },
+  {
+    num: '03',
+    title: 'Culture Fit',
+    desc: 'A 12-question assessment maps your work style to company archetypes — startup, enterprise, research, and more.',
+    stat: 'KNN classifier, k=5',
+  },
+  {
+    num: '04',
+    title: 'Career Roadmap',
+    desc: 'AI-generated 30/60/90-day skill plan tailored to your gaps, culture result, and target role.',
+    stat: '~10 tasks per roadmap',
+  },
 ];
 
-export default function Landing() {
+/* ─── Mock app screenshot ─────────────────────────────────── */
+function AppMockup() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-primary)' }}>
-      {/* Background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full opacity-[0.07]"
-          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }} />
-        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.05]"
-          style={{ background: 'radial-gradient(circle, #34d399 0%, transparent 70%)' }} />
+    <div
+      style={{
+        background: '#111111',
+        border: '1px solid #ffffff14',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+      }}
+    >
+      {/* Window chrome */}
+      <div
+        style={{
+          background: '#1a1a1a',
+          borderBottom: '1px solid #ffffff0d',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+        <div style={{ flex: 1, height: 20, background: '#252525', borderRadius: 6, marginLeft: 8 }} />
       </div>
 
+      {/* App layout */}
+      <div style={{ display: 'flex', height: 380 }}>
+        {/* Sidebar */}
+        <div style={{ width: 160, borderRight: '1px solid #ffffff0d', padding: '20px 0' }}>
+          <div style={{ padding: '0 16px', marginBottom: 24 }}>
+            <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>CareerLens</span>
+          </div>
+          {['Dashboard', 'Resume Score', 'AI Enhancer', 'Culture Fit', 'Roadmap'].map((item, i) => (
+            <div
+              key={item}
+              style={{
+                padding: '8px 16px',
+                margin: '2px 8px',
+                borderRadius: 6,
+                background: i === 1 ? '#10b98115' : 'transparent',
+                borderLeft: i === 1 ? '2px solid #10b981' : '2px solid transparent',
+                color: i === 1 ? '#fff' : '#555',
+                fontSize: 12,
+                cursor: 'default',
+              }}
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div style={{ flex: 1, padding: '20px 24px', overflow: 'hidden' }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: '#888', fontSize: 11, marginBottom: 4 }}>MATCH SCORE</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+              <span style={{ color: '#fff', fontSize: 36, fontWeight: 700, lineHeight: 1 }}>78</span>
+              <span style={{ color: '#10b981', fontSize: 13, marginBottom: 4 }}>/ 100</span>
+            </div>
+            {/* Score bar */}
+            <div style={{ height: 4, background: '#222', borderRadius: 2, marginTop: 10, width: '100%' }}>
+              <div style={{ height: 4, background: '#10b981', borderRadius: 2, width: '78%', transition: 'width 1s' }} />
+            </div>
+          </div>
+
+          {/* Keyword pills */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ color: '#555', fontSize: 10, marginBottom: 8 }}>MATCHED KEYWORDS</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {['React', 'TypeScript', 'FastAPI', 'PostgreSQL', 'REST APIs'].map(k => (
+                <span key={k} style={{ padding: '2px 8px', background: '#10b98115', border: '1px solid #10b98125', borderRadius: 4, color: '#10b981', fontSize: 10 }}>
+                  {k}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ color: '#555', fontSize: 10, marginBottom: 8 }}>MISSING KEYWORDS</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {['Kubernetes', 'Docker', 'CI/CD'].map(k => (
+                <span key={k} style={{ padding: '2px 8px', background: '#ff444415', border: '1px solid #ff444425', borderRadius: 4, color: '#ff6b6b', fontSize: 10 }}>
+                  {k}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Section bars */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 16 }}>
+            {[['Experience', 82], ['Skills', 91], ['Education', 65]].map(([label, val]) => (
+              <div key={label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ color: '#555', fontSize: 10 }}>{label}</span>
+                  <span style={{ color: '#888', fontSize: 10 }}>{val}%</span>
+                </div>
+                <div style={{ height: 3, background: '#1e1e1e', borderRadius: 2 }}>
+                  <div style={{ height: 3, background: '#ffffff20', borderRadius: 2, width: `${val}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Feature card ────────────────────────────────────────── */
+function FeatureCard({ num, title, desc, stat, index }: typeof features[0] & { index: number }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.45, delay: index * 0.08 }}
+      style={{
+        border: '1px solid #ffffff10',
+        borderRadius: 12,
+        padding: '28px 28px 24px',
+        background: 'transparent',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        cursor: 'default',
+        transition: 'border-color 0.2s',
+      }}
+      whileHover={{ borderColor: '#ffffff20' }}
+    >
+      <div style={{ color: '#10b981', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
+        {num} /
+      </div>
+      <div style={{ color: '#ffffff', fontSize: 15, fontWeight: 600 }}>{title}</div>
+      <div style={{ color: '#666', fontSize: 13, lineHeight: 1.7 }}>{desc}</div>
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: 16,
+          borderTop: '1px solid #ffffff08',
+          color: '#444',
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: '0.02em',
+        }}
+      >
+        {stat}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Landing ────────────────────────────────────────────── */
+export default function Landing() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <div style={{ background: '#0a0a0a', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#fff' }}>
+
       {/* ── Navbar ──────────────────────────────────────────── */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-5"
-        style={{ borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', background: 'rgba(10,10,20,0.7)' }}>
-        <Link to="/" className="flex items-center gap-2 no-underline">
-          <span className="text-2xl">🔭</span>
-          <span className="text-lg font-bold gradient-text">CareerLens</span>
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          padding: '0 48px',
+          height: 60,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          transition: 'background 0.3s, border-color 0.3s',
+          background: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(16px)' : 'none',
+          borderBottom: scrolled ? '1px solid #ffffff0d' : '1px solid transparent',
+        }}
+      >
+        <Link to="/" style={{ textDecoration: 'none', color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>
+          CareerLens
         </Link>
 
-        <nav className="flex items-center gap-3">
-          <Link to="/login" className="btn-ghost text-sm py-2 px-5">Sign In</Link>
-          <Link to="/register" className="btn-primary text-sm py-2 px-5">Sign Up</Link>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link
+            to="/login"
+            style={{
+              color: '#888',
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 500,
+              padding: '6px 16px',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/register"
+            style={{
+              background: '#fff',
+              color: '#0a0a0a',
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+              padding: '7px 18px',
+              borderRadius: 8,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Get started
+          </Link>
         </nav>
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-24">
-        <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <span className="badge-purple mb-6 inline-flex text-xs py-1 px-4">
-            Powered by Gemini 1.5 Flash + all-MiniLM-L6-v2
-          </span>
+      <section
+        style={{
+          paddingTop: 160,
+          paddingBottom: 100,
+          paddingLeft: 48,
+          paddingRight: 48,
+          maxWidth: 1200,
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 80,
+          alignItems: 'center',
+        }}
+      >
+        {/* Left: Text */}
+        <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+          <div style={{ marginBottom: 32 }}>
+            <span style={{ display: 'inline-block', color: '#10b981', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 }}>
+              Career Intelligence
+            </span>
+            <h1
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 'clamp(48px, 5.5vw, 76px)',
+                fontWeight: 800,
+                lineHeight: 1.05,
+                letterSpacing: '-0.035em',
+                color: '#fff',
+                margin: 0,
+              }}
+            >
+              Land the job<br />
+              <span style={{ color: '#333' }}>you actually want.</span>
+            </h1>
+          </div>
 
-          <h1 className="text-5xl sm:text-6xl font-extrabold text-white leading-tight mb-6"
-            style={{ letterSpacing: '-0.02em' }}>
-            Your career,{' '}
-            <span className="gradient-text">smarter</span>
-          </h1>
-
-          <p className="text-slate-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            Score your resume against any job, enhance it with AI, discover your culture fit,
-            and get a personalised career roadmap — all in one place.
+          <p
+            style={{
+              color: '#666',
+              fontSize: 16,
+              lineHeight: 1.75,
+              maxWidth: 420,
+              margin: '0 0 40px',
+            }}
+          >
+            Score your resume against any job description, enhance it with AI,
+            discover your culture fit, and get a personalised career roadmap.
           </p>
 
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <Link to="/register" className="btn-primary text-base px-8 py-3 glow-pulse">
-              Get Started Free →
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <Link
+              to="/register"
+              style={{
+                background: '#fff',
+                color: '#0a0a0a',
+                textDecoration: 'none',
+                fontSize: 14,
+                fontWeight: 600,
+                padding: '12px 24px',
+                borderRadius: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Analyse my resume →
             </Link>
-            <Link to="/login" className="btn-ghost text-base px-8 py-3">
-              Sign In
+
+            <Link
+              to="/login"
+              style={{
+                color: '#888',
+                textDecoration: 'underline',
+                textUnderlineOffset: 4,
+                textDecorationColor: '#333',
+                fontSize: 14,
+                fontWeight: 500,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+            >
+              See how it works
             </Link>
           </div>
         </motion.div>
 
-        {/* Stats */}
+        {/* Right: Mockup */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="flex items-center gap-10 mt-16 flex-wrap justify-center"
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
         >
-          {[['AI Scoring', 'TF-IDF + BERT'], ['Culture KNN', 'k=5 classifier'], ['Roadmap AI', 'Gemini Flash']].map(([label, sub]) => (
-            <div key={label} className="text-center">
-              <p className="text-white font-bold text-lg">{label}</p>
-              <p className="text-slate-500 text-xs mt-0.5">{sub}</p>
-            </div>
-          ))}
+          <AppMockup />
         </motion.div>
       </section>
 
-      {/* ── Features grid ────────────────────────────────────── */}
-      <section className="relative z-10 px-8 py-20" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="max-w-5xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-3xl font-bold text-white text-center mb-2"
-          >
-            Everything you need to land the job
-          </motion.h2>
-          <p className="text-slate-400 text-center text-sm mb-12">Four AI-powered tools, one dashboard.</p>
+      {/* ── Divider ──────────────────────────────────────────── */}
+      <div style={{ borderTop: '1px solid #ffffff08', maxWidth: 1200, margin: '0 auto' }} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-                className="card hover:scale-[1.03] transition-transform duration-200 cursor-default"
-              >
-                <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="text-white font-semibold text-sm mb-2">{f.title}</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+      {/* ── Feature cards ────────────────────────────────────── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '96px 48px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 16,
+          }}
+        >
+          {features.map((f, i) => (
+            <FeatureCard key={f.num} {...f} index={i} />
+          ))}
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────── */}
-      <section className="relative z-10 px-8 py-16 text-center" style={{ borderTop: '1px solid var(--border)' }}>
-        <motion.div initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}>
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to level up your career?</h2>
-          <p className="text-slate-400 text-sm mb-8">Free to use. No credit card required.</p>
-          <Link to="/register" className="btn-primary text-base px-10 py-3">
-            Create Your Account →
-          </Link>
-        </motion.div>
-      </section>
-
       {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="relative z-10 px-8 py-6 text-center text-slate-600 text-xs"
-        style={{ borderTop: '1px solid var(--border)' }}>
-        © 2026 CareerLens · Built with React + FastAPI + Gemini AI
+      <footer
+        style={{
+          borderTop: '1px solid #ffffff08',
+          padding: '24px 48px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          maxWidth: 1200,
+          margin: '0 auto',
+        }}
+      >
+        <span style={{ color: '#333', fontSize: 12 }}>CareerLens · 2026</span>
+        <nav style={{ display: 'flex', gap: 24 }}>
+          {[['Sign in', '/login'], ['Sign up', '/register']].map(([label, to]) => (
+            <Link
+              key={to}
+              to={to}
+              style={{ color: '#333', textDecoration: 'none', fontSize: 12, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#888')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#333')}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
       </footer>
     </div>
   );

@@ -1,0 +1,2943 @@
+Directory structure:
+└── CareerLens/
+    ├── README.md
+    ├── docker-compose.yml
+    ├── client/
+    │   ├── index.html
+    │   ├── package.json
+    │   ├── postcss.config.js
+    │   ├── tailwind.config.js
+    │   ├── tsconfig.app.json
+    │   ├── tsconfig.json
+    │   ├── tsconfig.node.json
+    │   ├── vite.config.ts
+    │   └── src/
+    │       ├── App.tsx
+    │       ├── index.css
+    │       ├── main.tsx
+    │       ├── vite-env.d.ts
+    │       ├── api/
+    │       │   ├── axios.ts
+    │       │   ├── resumeApi.ts
+    │       │   └── roadmapApi.ts
+    │       ├── components/
+    │       │   ├── CultureQuiz.tsx
+    │       │   ├── EnhancerDiff.tsx
+    │       │   ├── KeywordDiff.tsx
+    │       │   ├── RadarChart.tsx
+    │       │   ├── ResumeUpload.tsx
+    │       │   ├── RoadmapBoard.tsx
+    │       │   ├── ScoreCard.tsx
+    │       │   └── Sidebar.tsx
+    │       ├── context/
+    │       │   └── AuthContext.tsx
+    │       └── pages/
+    │           ├── CultureFit.tsx
+    │           ├── Dashboard.tsx
+    │           ├── Enhancer.tsx
+    │           ├── Landing.tsx
+    │           ├── Login.tsx
+    │           ├── Register.tsx
+    │           ├── ResumeScore.tsx
+    │           └── Roadmap.tsx
+    ├── ml_service/
+    │   ├── main.py
+    │   ├── requirements.txt
+    │   ├── .env.example
+    │   ├── models/
+    │   │   └── train_culture.py
+    │   ├── routers/
+    │   │   ├── culture.py
+    │   │   ├── resume.py
+    │   │   └── roadmap.py
+    │   ├── tests/
+    │   │   └── .gitkeep
+    │   └── utils/
+    │       ├── gemini_client.py
+    │       ├── pdf_parser.py
+    │       └── scorer.py
+    └── server/
+        ├── package.json
+        ├── tsconfig.json
+        ├── .env.example
+        ├── db/
+        │   └── migrations.sql
+        └── src/
+            ├── index.ts
+            ├── db/
+            │   └── pool.ts
+            ├── middleware/
+            │   ├── authMiddleware.ts
+            │   └── upload.ts
+            ├── routes/
+            │   ├── auth.ts
+            │   ├── cultureFit.ts
+            │   ├── resume.ts
+            │   └── roadmap.ts
+            └── types/
+                └── index.ts
+
+================================================
+FILE: README.md
+================================================
+[Empty file]
+
+
+================================================
+FILE: docker-compose.yml
+================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: careerlens_db
+    environment:
+      POSTGRES_USER: careerlens
+      POSTGRES_PASSWORD: careerlens_secret
+      POSTGRES_DB: careerlens
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/db/migrations.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U careerlens']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+
+
+
+================================================
+FILE: client/index.html
+================================================
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CareerLens — AI-Powered Career Intelligence</title>
+    <meta name="description" content="Score your resume against any job description, enhance it with AI, discover your culture fit, and get a personalised 30/60/90-day career roadmap." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+
+
+================================================
+FILE: client/package.json
+================================================
+{
+  "name": "careerlens-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "framer-motion": "^12.38.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^15.0.0",
+    "react-router-dom": "^6.28.0",
+    "recharts": "^2.14.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^9.16.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  }
+}
+
+
+
+================================================
+FILE: client/postcss.config.js
+================================================
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
+};
+
+
+
+================================================
+FILE: client/tailwind.config.js
+================================================
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+      colors: {
+        brand: {
+          DEFAULT: '#7c3aed',
+          light: '#a78bfa',
+          dark: '#5b21b6',
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+
+
+
+================================================
+FILE: client/tsconfig.app.json
+================================================
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
+
+
+
+================================================
+FILE: client/tsconfig.json
+================================================
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+
+
+
+================================================
+FILE: client/tsconfig.node.json
+================================================
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}
+
+
+
+================================================
+FILE: client/vite.config.ts
+================================================
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
+})
+
+
+
+================================================
+FILE: client/src/App.tsx
+================================================
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Landing from './pages/Landing';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import ResumeScore from './pages/ResumeScore';
+import Enhancer from './pages/Enhancer';
+import CultureFit from './pages/CultureFit';
+import Roadmap from './pages/Roadmap';
+
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/resume" element={<PrivateRoute><ResumeScore /></PrivateRoute>} />
+      <Route path="/enhance" element={<PrivateRoute><Enhancer /></PrivateRoute>} />
+      <Route path="/culture" element={<PrivateRoute><CultureFit /></PrivateRoute>} />
+      <Route path="/roadmap" element={<PrivateRoute><Roadmap /></PrivateRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
+
+
+
+================================================
+FILE: client/src/index.css
+================================================
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+/* ── CSS Variables ─────────────────────────────────── */
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0f0f1a;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f1f5f9;
+  --text-muted: #64748b;
+  --accent: #7c3aed;
+  --accent-glow: rgba(124, 58, 237, 0.3);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+}
+
+/* ── Reset ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--accent-glow); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4);
+  border-radius: 9999px;
+}
+
+/* ── Cards ─────────────────────────────────────────── */
+.card {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+}
+
+.card-glow {
+  border-radius: 1rem;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  padding: 1.5rem;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 1px var(--accent-glow), 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Buttons ───────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 0 20px var(--accent-glow);
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  box-shadow: 0 0 32px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Inputs ────────────────────────────────────────── */
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.input::placeholder { color: #475569; }
+
+.input:focus {
+  border-color: var(--accent);
+  background: rgba(124, 58, 237, 0.05);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.375rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Badges ────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.badge-danger {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.badge-warning {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--warning);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.badge-purple {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+/* ── Page typography ───────────────────────────────── */
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 2rem;
+}
+
+/* ── Gradient text ─────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #a78bfa, #34d399);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Glow pulse animation ──────────────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 16px var(--accent-glow); }
+  50% { box-shadow: 0 0 32px var(--accent-glow); }
+}
+
+.glow-pulse { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* ── Spin animation ────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+
+
+
+================================================
+FILE: client/src/main.tsx
+================================================
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+
+
+
+================================================
+FILE: client/src/vite-env.d.ts
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/api/axios.ts
+================================================
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:3001',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Attach Bearer token from localStorage to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('cl_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// On 401 — clear auth and redirect to login
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('cl_token');
+      localStorage.removeItem('cl_user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+
+
+================================================
+FILE: client/src/api/resumeApi.ts
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/api/roadmapApi.ts
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/CultureQuiz.tsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/EnhancerDiff.tsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/KeywordDiff.tsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/RadarChart.tsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/ResumeUpload.tsx
+================================================
+import { useCallback, useState } from 'react';
+import { useDropzone, FileRejection } from 'react-dropzone';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface Props {
+  onFileAccepted: (file: File) => void;
+  currentFile?: File | null;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function ResumeUpload({ onFileAccepted, currentFile }: Props) {
+  const [rejectMsg, setRejectMsg] = useState('');
+
+  const onDrop = useCallback((accepted: File[], rejected: FileRejection[]) => {
+    setRejectMsg('');
+    if (rejected.length) {
+      const code = rejected[0]?.errors[0]?.code;
+      if (code === 'file-too-large') setRejectMsg('File exceeds 10 MB limit.');
+      else setRejectMsg('Only PDF files are accepted.');
+      return;
+    }
+    if (accepted[0]) onFileAccepted(accepted[0]);
+  }, [onFileAccepted]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'application/pdf': ['.pdf'] },
+    maxSize: 10 * 1024 * 1024,
+    multiple: false,
+  });
+
+  return (
+    <div className="space-y-3">
+      <div
+        {...getRootProps()}
+        className="relative rounded-2xl p-8 text-center cursor-pointer transition-all duration-300"
+        style={{
+          border: `2px dashed ${isDragActive ? '#7c3aed' : currentFile ? '#34d399' : 'rgba(255,255,255,0.1)'}`,
+          background: isDragActive
+            ? 'rgba(124,58,237,0.07)'
+            : currentFile
+              ? 'rgba(52,211,153,0.05)'
+              : 'rgba(255,255,255,0.02)',
+          boxShadow: isDragActive ? '0 0 24px rgba(124,58,237,0.3)' : 'none',
+        }}
+      >
+        <input {...getInputProps()} />
+        <AnimatePresence mode="wait">
+          {currentFile ? (
+            <motion.div key="file" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <div className="text-4xl mb-3">📄</div>
+              <p className="font-semibold text-white text-sm">{currentFile.name}</p>
+              <p className="text-xs text-slate-400 mt-1">{formatBytes(currentFile.size)}</p>
+              <span className="badge-success mt-3 inline-flex">PDF Ready</span>
+            </motion.div>
+          ) : (
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="text-4xl mb-3">{isDragActive ? '📂' : '☁️'}</div>
+              <p className="text-sm font-medium text-slate-300">
+                {isDragActive ? 'Drop your PDF here' : 'Drag & drop your resume PDF'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">or click to browse — max 10 MB</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {rejectMsg && (
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-400 px-1">
+          ⚠ {rejectMsg}
+        </motion.p>
+      )}
+
+      {currentFile && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onFileAccepted(null as any); }}
+          className="btn-ghost text-xs py-1.5 px-3"
+        >
+          Remove file
+        </button>
+      )}
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/components/RoadmapBoard.tsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/ScoreCard.tsx
+================================================
+[Empty file]
+
+
+================================================
+FILE: client/src/components/Sidebar.tsx
+================================================
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: '🏠' },
+  { to: '/resume', label: 'Resume Score', icon: '📄' },
+  { to: '/enhance', label: 'AI Enhancer', icon: '✨' },
+  { to: '/culture', label: 'Culture Fit', icon: '🧬' },
+  { to: '/roadmap', label: 'Roadmap', icon: '🗺️' },
+];
+
+export default function Sidebar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
+    <aside className="fixed left-0 top-0 h-screen w-64 flex flex-col z-40"
+      style={{ background: 'rgba(10,10,20,0.95)', borderRight: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}>
+
+      {/* Logo */}
+      <div className="px-6 py-6 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🔭</span>
+          <span className="text-lg font-bold gradient-text">CareerLens</span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {navItems.map(({ to, label, icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? 'text-white'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+              }`
+            }
+            style={({ isActive }) => isActive
+              ? { background: 'linear-gradient(135deg,rgba(124,58,237,0.25),rgba(109,40,217,0.15))', border: '1px solid rgba(124,58,237,0.3)' }
+              : {}}
+          >
+            <span className="text-base">{icon}</span>
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* User + Logout */}
+      <div className="px-4 py-4 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-3 px-2 mb-3">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>
+            {user?.name?.[0]?.toUpperCase() ?? 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-200 truncate">{user?.name}</p>
+            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+          </div>
+        </div>
+        <button onClick={handleLogout} className="btn-ghost w-full text-xs py-2">
+          Sign Out
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+
+
+================================================
+FILE: client/src/context/AuthContext.tsx
+================================================
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Hydrate from localStorage on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem('cl_token');
+    const storedUser = localStorage.getItem('cl_user');
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const login = (newToken: string, newUser: User) => {
+    localStorage.setItem('cl_token', newToken);
+    localStorage.setItem('cl_user', JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('cl_token');
+    localStorage.removeItem('cl_user');
+    setToken(null);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  return ctx;
+}
+
+
+
+================================================
+FILE: client/src/pages/CultureFit.tsx
+================================================
+import Sidebar from '../components/Sidebar';
+
+export default function CultureFit() {
+  return (
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <Sidebar />
+      <main className="flex-1 ml-64 p-8">
+        <h1 className="page-title">Culture Fit</h1>
+        <p className="page-subtitle">Answer 12 questions to discover your ideal company archetype.</p>
+        <div className="card flex flex-col items-center justify-center py-20 text-slate-500">
+          <div className="text-5xl mb-4">🧬</div>
+          <p className="text-sm">Coming in next session</p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/Dashboard.tsx
+================================================
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+interface StatCard {
+  label: string;
+  value: string;
+  icon: string;
+  color: string;
+  to: string;
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [latestScore, setLatestScore] = useState<number | null>(null);
+  const [taskCount, setTaskCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.get('/api/resume/history')
+      .then(r => { if (r.data?.[0]) setLatestScore(r.data[0].score); })
+      .catch(() => {});
+    api.get('/api/roadmap/tasks')
+      .then(r => setTaskCount(r.data?.length ?? 0))
+      .catch(() => {});
+  }, []);
+
+  const stats: StatCard[] = [
+    { label: 'Latest Resume Score', value: latestScore !== null ? `${latestScore.toFixed(0)}` : '—', icon: '📊', color: '#7c3aed', to: '/resume' },
+    { label: 'Active Roadmap Tasks', value: taskCount !== null ? String(taskCount) : '—', icon: '🗺️', color: '#34d399', to: '/roadmap' },
+    { label: 'AI Enhancer', value: 'Improve it', icon: '✨', color: '#fbbf24', to: '/enhance' },
+    { label: 'Culture Fit', value: 'Take Quiz', icon: '🧬', color: '#f87171', to: '/culture' },
+  ];
+
+  return (
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <Sidebar />
+      <main className="flex-1 ml-64 p-8">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mb-10">
+          <h1 className="text-3xl font-bold text-white">
+            Welcome back, <span className="gradient-text">{user?.name?.split(' ')[0]}</span> 👋
+          </h1>
+          <p className="text-slate-400 mt-1 text-sm">Here's your career intelligence snapshot.</p>
+        </motion.div>
+
+        {/* Stat cards */}
+        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {stats.map((s) => (
+            <motion.div key={s.label} variants={item}>
+              <Link to={s.to} className="block card hover:scale-[1.02] transition-transform duration-200 cursor-pointer group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                    style={{ background: `${s.color}20`, border: `1px solid ${s.color}30` }}>
+                    {s.icon}
+                  </div>
+                  <span className="text-xs text-slate-500 group-hover:text-slate-300 transition-colors">View →</span>
+                </div>
+                <p className="text-2xl font-bold text-white mb-1"
+                  style={s.value !== '—' && s.value !== 'Improve it' && s.value !== 'Take Quiz'
+                    ? { color: s.color } : {}}>
+                  {s.value}
+                </p>
+                <p className="text-xs text-slate-400">{s.label}</p>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Quick action banner */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+          <div className="card-glow flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-white mb-1">Ready to score your resume?</h2>
+              <p className="text-sm text-slate-400">Upload a PDF and paste a job description to get your match score.</p>
+            </div>
+            <Link to="/resume" className="btn-primary shrink-0">Score Now</Link>
+          </div>
+        </motion.div>
+      </main>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/Enhancer.tsx
+================================================
+import Sidebar from '../components/Sidebar';
+
+export default function Enhancer() {
+  return (
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <Sidebar />
+      <main className="flex-1 ml-64 p-8">
+        <h1 className="page-title">AI Enhancer</h1>
+        <p className="page-subtitle">Rewrite your resume sections with stronger action verbs and JD keywords.</p>
+        <div className="card flex flex-col items-center justify-center py-20 text-slate-500">
+          <div className="text-5xl mb-4">✨</div>
+          <p className="text-sm">Coming in next session</p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/Landing.tsx
+================================================
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, useInView } from 'framer-motion';
+
+/* ─── Types ──────────────────────────────────────────────── */
+const features = [
+  {
+    num: '01',
+    title: 'Resume Score',
+    desc: 'Two-stage analysis using TF-IDF keyword matching and BERT semantic similarity. Know exactly where you stand.',
+    stat: 'Up to 94% match accuracy',
+  },
+  {
+    num: '02',
+    title: 'AI Enhancer',
+    desc: 'Section-by-section rewriting with stronger action verbs, quantified metrics, and natural keyword insertion.',
+    stat: 'Powered by Gemini Flash',
+  },
+  {
+    num: '03',
+    title: 'Culture Fit',
+    desc: 'A 12-question assessment maps your work style to company archetypes — startup, enterprise, research, and more.',
+    stat: 'KNN classifier, k=5',
+  },
+  {
+    num: '04',
+    title: 'Career Roadmap',
+    desc: 'AI-generated 30/60/90-day skill plan tailored to your gaps, culture result, and target role.',
+    stat: '~10 tasks per roadmap',
+  },
+];
+
+/* ─── Mock app screenshot ─────────────────────────────────── */
+function AppMockup() {
+  return (
+    <div
+      style={{
+        background: '#111111',
+        border: '1px solid #ffffff14',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+      }}
+    >
+      {/* Window chrome */}
+      <div
+        style={{
+          background: '#1a1a1a',
+          borderBottom: '1px solid #ffffff0d',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3a3a3a', display: 'inline-block' }} />
+        <div style={{ flex: 1, height: 20, background: '#252525', borderRadius: 6, marginLeft: 8 }} />
+      </div>
+
+      {/* App layout */}
+      <div style={{ display: 'flex', height: 380 }}>
+        {/* Sidebar */}
+        <div style={{ width: 160, borderRight: '1px solid #ffffff0d', padding: '20px 0' }}>
+          <div style={{ padding: '0 16px', marginBottom: 24 }}>
+            <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>CareerLens</span>
+          </div>
+          {['Dashboard', 'Resume Score', 'AI Enhancer', 'Culture Fit', 'Roadmap'].map((item, i) => (
+            <div
+              key={item}
+              style={{
+                padding: '8px 16px',
+                margin: '2px 8px',
+                borderRadius: 6,
+                background: i === 1 ? '#10b98115' : 'transparent',
+                borderLeft: i === 1 ? '2px solid #10b981' : '2px solid transparent',
+                color: i === 1 ? '#fff' : '#555',
+                fontSize: 12,
+                cursor: 'default',
+              }}
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div style={{ flex: 1, padding: '20px 24px', overflow: 'hidden' }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ color: '#888', fontSize: 11, marginBottom: 4 }}>MATCH SCORE</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+              <span style={{ color: '#fff', fontSize: 36, fontWeight: 700, lineHeight: 1 }}>78</span>
+              <span style={{ color: '#10b981', fontSize: 13, marginBottom: 4 }}>/ 100</span>
+            </div>
+            {/* Score bar */}
+            <div style={{ height: 4, background: '#222', borderRadius: 2, marginTop: 10, width: '100%' }}>
+              <div style={{ height: 4, background: '#10b981', borderRadius: 2, width: '78%', transition: 'width 1s' }} />
+            </div>
+          </div>
+
+          {/* Keyword pills */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ color: '#555', fontSize: 10, marginBottom: 8 }}>MATCHED KEYWORDS</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {['React', 'TypeScript', 'FastAPI', 'PostgreSQL', 'REST APIs'].map(k => (
+                <span key={k} style={{ padding: '2px 8px', background: '#10b98115', border: '1px solid #10b98125', borderRadius: 4, color: '#10b981', fontSize: 10 }}>
+                  {k}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ color: '#555', fontSize: 10, marginBottom: 8 }}>MISSING KEYWORDS</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {['Kubernetes', 'Docker', 'CI/CD'].map(k => (
+                <span key={k} style={{ padding: '2px 8px', background: '#ff444415', border: '1px solid #ff444425', borderRadius: 4, color: '#ff6b6b', fontSize: 10 }}>
+                  {k}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Section bars */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 16 }}>
+            {[['Experience', 82], ['Skills', 91], ['Education', 65]].map(([label, val]) => (
+              <div key={label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ color: '#555', fontSize: 10 }}>{label}</span>
+                  <span style={{ color: '#888', fontSize: 10 }}>{val}%</span>
+                </div>
+                <div style={{ height: 3, background: '#1e1e1e', borderRadius: 2 }}>
+                  <div style={{ height: 3, background: '#ffffff20', borderRadius: 2, width: `${val}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Feature card ────────────────────────────────────────── */
+function FeatureCard({ num, title, desc, stat, index }: typeof features[0] & { index: number }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.45, delay: index * 0.08 }}
+      style={{
+        border: '1px solid #ffffff10',
+        borderRadius: 12,
+        padding: '28px 28px 24px',
+        background: 'transparent',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        cursor: 'default',
+        transition: 'border-color 0.2s',
+      }}
+      whileHover={{ borderColor: '#ffffff20' }}
+    >
+      <div style={{ color: '#10b981', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
+        {num} /
+      </div>
+      <div style={{ color: '#ffffff', fontSize: 15, fontWeight: 600 }}>{title}</div>
+      <div style={{ color: '#666', fontSize: 13, lineHeight: 1.7 }}>{desc}</div>
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: 16,
+          borderTop: '1px solid #ffffff08',
+          color: '#444',
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: '0.02em',
+        }}
+      >
+        {stat}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Landing ────────────────────────────────────────────── */
+export default function Landing() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <div style={{ background: '#0a0a0a', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#fff' }}>
+
+      {/* ── Navbar ──────────────────────────────────────────── */}
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          padding: '0 48px',
+          height: 60,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          transition: 'background 0.3s, border-color 0.3s',
+          background: scrolled ? 'rgba(10,10,10,0.85)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(16px)' : 'none',
+          borderBottom: scrolled ? '1px solid #ffffff0d' : '1px solid transparent',
+        }}
+      >
+        <Link to="/" style={{ textDecoration: 'none', color: '#fff', fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>
+          CareerLens
+        </Link>
+
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link
+            to="/login"
+            style={{
+              color: '#888',
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 500,
+              padding: '6px 16px',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/register"
+            style={{
+              background: '#fff',
+              color: '#0a0a0a',
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+              padding: '7px 18px',
+              borderRadius: 8,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            Get started
+          </Link>
+        </nav>
+      </header>
+
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <section
+        style={{
+          paddingTop: 160,
+          paddingBottom: 100,
+          paddingLeft: 48,
+          paddingRight: 48,
+          maxWidth: 1200,
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 80,
+          alignItems: 'center',
+        }}
+      >
+        {/* Left: Text */}
+        <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+          <div style={{ marginBottom: 32 }}>
+            <span style={{ display: 'inline-block', color: '#10b981', fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 }}>
+              Career Intelligence
+            </span>
+            <h1
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 'clamp(48px, 5.5vw, 76px)',
+                fontWeight: 800,
+                lineHeight: 1.05,
+                letterSpacing: '-0.035em',
+                color: '#fff',
+                margin: 0,
+              }}
+            >
+              Land the job<br />
+              <span style={{ color: '#333' }}>you actually want.</span>
+            </h1>
+          </div>
+
+          <p
+            style={{
+              color: '#666',
+              fontSize: 16,
+              lineHeight: 1.75,
+              maxWidth: 420,
+              margin: '0 0 40px',
+            }}
+          >
+            Score your resume against any job description, enhance it with AI,
+            discover your culture fit, and get a personalised career roadmap.
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <Link
+              to="/register"
+              style={{
+                background: '#fff',
+                color: '#0a0a0a',
+                textDecoration: 'none',
+                fontSize: 14,
+                fontWeight: 600,
+                padding: '12px 24px',
+                borderRadius: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Analyse my resume →
+            </Link>
+
+            <Link
+              to="/login"
+              style={{
+                color: '#888',
+                textDecoration: 'underline',
+                textUnderlineOffset: 4,
+                textDecorationColor: '#333',
+                fontSize: 14,
+                fontWeight: 500,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+            >
+              See how it works
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Right: Mockup */}
+        <motion.div
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <AppMockup />
+        </motion.div>
+      </section>
+
+      {/* ── Divider ──────────────────────────────────────────── */}
+      <div style={{ borderTop: '1px solid #ffffff08', maxWidth: 1200, margin: '0 auto' }} />
+
+      {/* ── Feature cards ────────────────────────────────────── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '96px 48px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 16,
+          }}
+        >
+          {features.map((f, i) => (
+            <FeatureCard key={f.num} {...f} index={i} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Footer ──────────────────────────────────────────── */}
+      <footer
+        style={{
+          borderTop: '1px solid #ffffff08',
+          padding: '24px 48px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          maxWidth: 1200,
+          margin: '0 auto',
+        }}
+      >
+        <span style={{ color: '#333', fontSize: 12 }}>CareerLens · 2026</span>
+        <nav style={{ display: 'flex', gap: 24 }}>
+          {[['Sign in', '/login'], ['Sign up', '/register']].map(([label, to]) => (
+            <Link
+              key={to}
+              to={to}
+              style={{ color: '#333', textDecoration: 'none', fontSize: 12, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#888')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#333')}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </footer>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/Login.tsx
+================================================
+import { useState, FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
+
+export default function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [submitError, setSubmitError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const validateField = (field: 'email' | 'password', value: string) => {
+    const next = { ...errors };
+    if (field === 'email') {
+      next.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : 'Enter a valid email address';
+    }
+    if (field === 'password') {
+      next.password = value.length >= 4 ? '' : 'Password must be at least 4 characters';
+    }
+    setErrors(next);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitError('');
+    // Run full validation before submit
+    const emailErr = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Enter a valid email address';
+    const passErr = password.length >= 4 ? '' : 'Password must be at least 4 characters';
+    if (emailErr || passErr) { setErrors({ email: emailErr, password: passErr }); return; }
+    setLoading(true);
+    try {
+      const { data } = await api.post('/api/auth/login', { email, password });
+      login(data.token, data.user);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.error || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
+      {/* Background glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }} />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md relative"
+      >
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <span className="text-3xl">🔭</span>
+            <span className="text-2xl font-bold gradient-text">CareerLens</span>
+          </div>
+          <p className="text-slate-400 text-sm">Sign in to your account</p>
+        </div>
+
+        <div className="card-glow">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="label">Email</label>
+              <input
+                type="email"
+                className="input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); validateField('email', e.target.value); }}
+                required
+                style={errors.email ? { borderColor: 'var(--danger)' } : {}}
+              />
+              {errors.email && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.email}</p>}
+            </div>
+            <div>
+              <label className="label">Password <span className="normal-case" style={{ color: 'var(--text-muted)' }}>(min 4 chars)</span></label>
+              <input
+                type="password"
+                className="input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); validateField('password', e.target.value); }}
+                required
+                style={errors.password ? { borderColor: 'var(--danger)' } : {}}
+              />
+              {errors.password && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.password}</p>}
+            </div>
+
+            {submitError && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl px-4 py-3 text-sm text-red-300"
+                style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)' }}
+              >
+                {submitError}
+              </motion.div>
+            )}
+
+            <button type="submit" className="btn-primary w-full" disabled={loading}>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Signing in…
+                </span>
+              ) : 'Sign In'}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-slate-400 mt-6">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+              Create one
+            </Link>
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/Register.tsx
+================================================
+import { useState, FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
+
+export default function Register() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  const [submitError, setSubmitError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const validateField = (field: 'name' | 'email' | 'password', value: string) => {
+    const next = { ...errors };
+    if (field === 'name') next.name = value.trim().length >= 2 ? '' : 'Name must be at least 2 characters';
+    if (field === 'email') next.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : 'Enter a valid email address';
+    if (field === 'password') next.password = value.length >= 4 ? '' : 'Password must be at least 4 characters';
+    setErrors(next);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitError('');
+    const nameErr = name.trim().length >= 2 ? '' : 'Name must be at least 2 characters';
+    const emailErr = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Enter a valid email address';
+    const passErr = password.length >= 4 ? '' : 'Password must be at least 4 characters';
+    if (nameErr || emailErr || passErr) { setErrors({ name: nameErr, email: emailErr, password: passErr }); return; }
+    setLoading(true);
+    try {
+      const { data } = await api.post('/api/auth/register', { name, email, password });
+      login(data.token, data.user);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.error || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
+      {/* Background glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }} />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md relative"
+      >
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <span className="text-3xl">🔭</span>
+            <span className="text-2xl font-bold gradient-text">CareerLens</span>
+          </div>
+          <p className="text-slate-400 text-sm">Create your account</p>
+        </div>
+
+        <div className="card-glow">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="label">Full Name</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Jane Smith"
+                value={name}
+                onChange={(e) => { setName(e.target.value); validateField('name', e.target.value); }}
+                required
+                style={errors.name ? { borderColor: 'var(--danger)' } : {}}
+              />
+              {errors.name && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.name}</p>}
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input
+                type="email"
+                className="input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); validateField('email', e.target.value); }}
+                required
+                style={errors.email ? { borderColor: 'var(--danger)' } : {}}
+              />
+              {errors.email && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.email}</p>}
+            </div>
+            <div>
+              <label className="label">Password <span className="normal-case" style={{ color: 'var(--text-muted)' }}>(min 4 chars)</span></label>
+              <input
+                type="password"
+                className="input"
+                placeholder="Min 4 characters"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); validateField('password', e.target.value); }}
+                required
+                style={errors.password ? { borderColor: 'var(--danger)' } : {}}
+              />
+              {errors.password && <p className="text-xs mt-1" style={{ color: 'var(--danger)' }}>{errors.password}</p>}
+            </div>
+
+            {submitError && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl px-4 py-3 text-sm text-red-300"
+                style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)' }}
+              >
+                {submitError}
+              </motion.div>
+            )}
+
+            <button type="submit" className="btn-primary w-full" disabled={loading}>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Creating account…
+                </span>
+              ) : 'Create Account'}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-slate-400 mt-6">
+            Already have an account?{' '}
+            <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/ResumeScore.tsx
+================================================
+import { useState, FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import Sidebar from '../components/Sidebar';
+import ResumeUpload from '../components/ResumeUpload';
+import api from '../api/axios';
+
+interface ScoreResult {
+  score: number;
+  matched_keywords: string[];
+  missing_keywords: string[];
+}
+
+export default function ResumeScore() {
+  const [file, setFile] = useState<File | null>(null);
+  const [jdText, setJdText] = useState('');
+  const [jobRole, setJobRole] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ScoreResult | null>(null);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!file || !jdText.trim()) { setError('Please upload a resume and paste a job description.'); return; }
+    setError('');
+    setLoading(true);
+    try {
+      const form = new FormData();
+      form.append('resume', file);
+      form.append('jd_text', jdText);
+      if (jobRole) form.append('job_role', jobRole);
+      const { data } = await api.post('/api/resume/score', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setResult(data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Scoring failed. Make sure the ML service is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const scoreColor = result
+    ? result.score >= 70 ? '#34d399' : result.score >= 45 ? '#fbbf24' : '#f87171'
+    : '#7c3aed';
+
+  return (
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <Sidebar />
+      <main className="flex-1 ml-64 p-8">
+        <h1 className="page-title">Resume Score</h1>
+        <p className="page-subtitle">Upload your resume and paste a job description to get your match score.</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Input Panel */}
+          <motion.form onSubmit={handleSubmit} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+            <div className="card">
+              <p className="label mb-3">Resume PDF</p>
+              <ResumeUpload onFileAccepted={setFile} currentFile={file} />
+            </div>
+
+            <div className="card space-y-4">
+              <div>
+                <label className="label">Job Role (optional)</label>
+                <input className="input" placeholder="e.g. Backend Engineer" value={jobRole} onChange={e => setJobRole(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Job Description *</label>
+                <textarea
+                  className="input resize-none"
+                  rows={8}
+                  placeholder="Paste the full job description here…"
+                  value={jdText}
+                  onChange={e => setJdText(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-400 px-1">⚠ {error}</p>}
+
+            <button type="submit" className="btn-primary w-full" disabled={loading || !file}>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Analysing…
+                </span>
+              ) : 'Analyse Resume'}
+            </button>
+          </motion.form>
+
+          {/* Result Panel */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            {result ? (
+              <div className="space-y-5">
+                {/* Score ring */}
+                <div className="card-glow text-center py-8">
+                  <svg viewBox="0 0 120 120" className="w-32 h-32 mx-auto mb-4">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10"/>
+                    <circle cx="60" cy="60" r="50" fill="none" stroke={scoreColor} strokeWidth="10"
+                      strokeDasharray={`${(result.score / 100) * 314} 314`}
+                      strokeLinecap="round" transform="rotate(-90 60 60)"
+                      style={{ transition: 'stroke-dasharray 0.8s ease', filter: `drop-shadow(0 0 8px ${scoreColor})` }}/>
+                    <text x="60" y="65" textAnchor="middle" fill="white" fontSize="22" fontWeight="700">{Math.round(result.score)}</text>
+                    <text x="60" y="82" textAnchor="middle" fill="#64748b" fontSize="10">/ 100</text>
+                  </svg>
+                  <p className="text-sm font-medium" style={{ color: scoreColor }}>
+                    {result.score >= 70 ? 'Strong Match ✓' : result.score >= 45 ? 'Partial Match' : 'Low Match — Consider Enhancing'}
+                  </p>
+                </div>
+
+                {/* Keywords */}
+                <div className="card space-y-4">
+                  <div>
+                    <p className="label mb-2">Matched Keywords ({result.matched_keywords.length})</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.matched_keywords.slice(0, 20).map(k => (
+                        <span key={k} className="badge-success">{k}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="label mb-2">Missing Keywords ({result.missing_keywords.length})</p>
+                    <div className="flex flex-wrap gap-2">
+                      {result.missing_keywords.slice(0, 20).map(k => (
+                        <span key={k} className="badge-danger">{k}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="card h-full flex flex-col items-center justify-center text-center py-20 text-slate-500">
+                <div className="text-5xl mb-4">📊</div>
+                <p className="text-sm">Your score results will appear here</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: client/src/pages/Roadmap.tsx
+================================================
+import Sidebar from '../components/Sidebar';
+
+export default function Roadmap() {
+  return (
+    <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <Sidebar />
+      <main className="flex-1 ml-64 p-8">
+        <h1 className="page-title">Career Roadmap</h1>
+        <p className="page-subtitle">Your AI-generated 30/60/90-day skill-building plan.</p>
+        <div className="card flex flex-col items-center justify-center py-20 text-slate-500">
+          <div className="text-5xl mb-4">🗺️</div>
+          <p className="text-sm">Coming in next session</p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+
+================================================
+FILE: ml_service/main.py
+================================================
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routers import resume, culture, roadmap
+
+app = FastAPI(title="CareerLens ML Service", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3001", "http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(resume.router, prefix="/ml")
+app.include_router(culture.router, prefix="/ml")
+app.include_router(roadmap.router, prefix="/ml")
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+
+================================================
+FILE: ml_service/requirements.txt
+================================================
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+pymupdf==1.25.4
+scikit-learn==1.6.1
+sentence-transformers==4.0.1
+joblib==1.4.2
+google-generativeai==0.8.4
+python-multipart==0.0.20
+python-dotenv==1.1.0
+numpy==2.2.4
+
+
+
+================================================
+FILE: ml_service/.env.example
+================================================
+# Google Gemini API key (get one at https://aistudio.google.com)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+
+
+================================================
+FILE: ml_service/models/train_culture.py
+================================================
+"""
+KNN Culture Fit Model — Training Script
+Run: python models/train_culture.py
+
+Generates:
+  models/knn_culture.pkl
+  models/preprocessor.pkl
+"""
+
+import os
+import sys
+import numpy as np
+import joblib
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+
+# ---------------------------------------------------------------------------
+# 6 personality dimensions (each scored 1-5):
+#   pace, collaboration, structure, ambiguity_tolerance, feedback_style, growth_mindset
+#
+# 5 company archetypes:
+#   0=Startup  1=Enterprise  2=Consultancy  3=Non-profit  4=Research
+# ---------------------------------------------------------------------------
+
+COMPANY_TYPES = ["Startup", "Enterprise", "Consultancy", "Non-profit", "Research"]
+
+# ~200 synthetic training samples
+# fmt: off
+SAMPLES = [
+    # [pace, collaboration, structure, ambiguity_tolerance, feedback_style, growth_mindset], label
+    # Startup (label=0) — fast pace, high collab, low structure, high ambiguity
+    *[([5,4,2,5,4,5], 0)] * 20,
+    *[([4,5,2,4,5,5], 0)] * 15,
+    *[([5,3,1,5,3,5], 0)] * 10,
+    # Enterprise (label=1) — moderate pace, structured, low ambiguity
+    *[([3,3,5,2,3,3], 1)] * 20,
+    *[([2,4,5,1,2,2], 1)] * 15,
+    *[([3,2,4,2,3,3], 1)] * 10,
+    # Consultancy (label=2) — fast pace, high structure, client-facing feedback
+    *[([4,4,4,3,5,4], 2)] * 20,
+    *[([5,4,4,3,4,4], 2)] * 15,
+    *[([4,3,5,3,5,3], 2)] * 10,
+    # Non-profit (label=3) — moderate pace, mission-driven, collaborative
+    *[([2,5,3,3,4,4], 3)] * 15,
+    *[([3,5,2,3,3,5], 3)] * 15,
+    *[([2,4,3,4,4,4], 3)] * 10,
+    # Research (label=4) — slow pace, low collab, high ambiguity
+    *[([1,2,3,5,2,5], 4)] * 15,
+    *[([2,1,4,5,1,5], 4)] * 15,
+    *[([1,2,2,4,2,4], 4)] * 10,
+]
+# fmt: on
+
+np.random.seed(42)
+
+
+def add_noise(samples, noise_std=0.4):
+    X, y = zip(*samples)
+    X = np.array(X, dtype=float)
+    y = np.array(y)
+    X += np.random.normal(0, noise_std, X.shape)
+    X = np.clip(X, 1, 5)
+    return X, y
+
+
+def train():
+    X, y = add_noise(SAMPLES)
+
+    pipeline = Pipeline([
+        ("scaler", StandardScaler()),
+        ("knn", KNeighborsClassifier(n_neighbors=5, metric="euclidean", weights="distance")),
+    ])
+    pipeline.fit(X, y)
+
+    out_dir = os.path.dirname(__file__)
+    joblib.dump(pipeline, os.path.join(out_dir, "knn_culture.pkl"))
+    print(f"✅ Trained on {len(X)} samples — saved to models/knn_culture.pkl")
+    print(f"   Classes: {COMPANY_TYPES}")
+
+
+if __name__ == "__main__":
+    train()
+
+
+
+================================================
+FILE: ml_service/routers/culture.py
+================================================
+import os
+import joblib
+import numpy as np
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+router = APIRouter(tags=["Culture Fit"])
+
+COMPANY_TYPES = ["Startup", "Enterprise", "Consultancy", "Non-profit", "Research"]
+
+_pipeline = None
+
+
+def _load_pipeline():
+    global _pipeline
+    if _pipeline is None:
+        model_path = os.path.join(os.path.dirname(__file__), "..", "models", "knn_culture.pkl")
+        if not os.path.exists(model_path):
+            raise HTTPException(
+                503,
+                "Culture model not trained yet. Run: python models/train_culture.py"
+            )
+        _pipeline = joblib.load(model_path)
+    return _pipeline
+
+
+class CultureRequest(BaseModel):
+    # 12 Likert answers (1–5) mapped to 6 personality dimensions (avg of 2 questions each)
+    answers: list[int]
+
+
+@router.post("/culture")
+def predict_culture(body: CultureRequest):
+    if len(body.answers) != 12:
+        raise HTTPException(400, "Exactly 12 answers required (1-5 each)")
+    if any(a < 1 or a > 5 for a in body.answers):
+        raise HTTPException(400, "Each answer must be between 1 and 5")
+
+    # Average pairs → 6 dimensions
+    ans = body.answers
+    dims = [
+        (ans[0] + ans[1]) / 2,   # pace
+        (ans[2] + ans[3]) / 2,   # collaboration
+        (ans[4] + ans[5]) / 2,   # structure
+        (ans[6] + ans[7]) / 2,   # ambiguity_tolerance
+        (ans[8] + ans[9]) / 2,   # feedback_style
+        (ans[10] + ans[11]) / 2, # growth_mindset
+    ]
+
+    pipeline = _load_pipeline()
+    X = np.array([dims])
+    proba = pipeline.predict_proba(X)[0]
+
+    result = {ct: round(float(p), 4) for ct, p in zip(COMPANY_TYPES, proba)}
+    top = max(result, key=result.get)  # type: ignore
+    return {"probabilities": result, "top_match": top, "dimensions": {
+        "pace": dims[0],
+        "collaboration": dims[1],
+        "structure": dims[2],
+        "ambiguity_tolerance": dims[3],
+        "feedback_style": dims[4],
+        "growth_mindset": dims[5],
+    }}
+
+
+
+================================================
+FILE: ml_service/routers/resume.py
+================================================
+import json
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from utils.pdf_parser import parse_pdf
+from utils.scorer import score_resume
+from utils.gemini_client import generate
+
+router = APIRouter(tags=["Resume"])
+
+ENHANCE_SYSTEM = (
+    "You are a senior technical recruiter. Given a resume section and a target "
+    "job description, rewrite the section with: stronger action verbs, quantified "
+    "metrics where possible, and natural insertion of relevant JD keywords. "
+    "Respond ONLY with valid JSON — no markdown, no commentary."
+)
+
+
+@router.post("/score")
+async def score(
+    resume: UploadFile = File(...),
+    jd_text: str = Form(...),
+):
+    if resume.content_type != "application/pdf":
+        raise HTTPException(400, "Only PDF files accepted")
+
+    file_bytes = await resume.read()
+    parsed = parse_pdf(file_bytes)
+    result = score_resume(parsed["full_text"], jd_text)
+    result["resume_text"] = parsed["full_text"]
+    return result
+
+
+@router.post("/enhance")
+async def enhance(
+    resume: UploadFile = File(...),
+    jd_text: str = Form(...),
+):
+    if resume.content_type != "application/pdf":
+        raise HTTPException(400, "Only PDF files accepted")
+
+    file_bytes = await resume.read()
+    parsed = parse_pdf(file_bytes)
+    sections = parsed["sections"]
+
+    enhancements: dict = {}
+    for section_name, section_text in sections.items():
+        if not section_text or len(section_text) < 20:
+            continue
+        user_prompt = (
+            f"Section: {section_name}\n\n"
+            f"Original:\n{section_text}\n\n"
+            f"Target JD keywords:\n{jd_text[:800]}\n\n"
+            f'Response format: {{"original": "...", "enhanced": "...", "changes": ["..."]}}'
+        )
+        try:
+            raw = generate(ENHANCE_SYSTEM, user_prompt)
+            # Strip code fences if model returns them
+            raw = raw.strip().removeprefix("```json").removesuffix("```").strip()
+            enhancements[section_name] = json.loads(raw)
+        except Exception as e:
+            enhancements[section_name] = {"original": section_text, "error": str(e)}
+
+    return {"enhancements": enhancements}
+
+
+
+================================================
+FILE: ml_service/routers/roadmap.py
+================================================
+import json
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from utils.gemini_client import generate
+
+router = APIRouter(tags=["Roadmap"])
+
+ROADMAP_SYSTEM = (
+    "You are a career coach specialising in tech roles. "
+    "Given a candidate's missing skills, their culture fit result, and target company type, "
+    "generate a structured 30/60/90-day career roadmap. "
+    "Return ONLY valid JSON (no markdown). "
+    "Schema: { \"tasks\": [ { \"category\": string, \"task\": string, "
+    "\"priority\": \"high\"|\"medium\"|\"low\", \"day_target\": 30|60|90 } ] }"
+)
+
+
+class RoadmapRequest(BaseModel):
+    missing_keywords: list[str]
+    top_match: str
+    culture_dimensions: dict[str, float] | None = None
+    job_role: str | None = None
+
+
+@router.post("/roadmap")
+def generate_roadmap(body: RoadmapRequest):
+    user_prompt = (
+        f"Job role: {body.job_role or 'Software Engineer'}\n"
+        f"Target company type: {body.top_match}\n"
+        f"Missing skills/keywords: {', '.join(body.missing_keywords[:30])}\n"
+        f"Culture dimensions: {json.dumps(body.culture_dimensions or {})}\n\n"
+        "Generate a personalised 30/60/90-day roadmap with ~10 tasks."
+    )
+    try:
+        raw = generate(ROADMAP_SYSTEM, user_prompt)
+        raw = raw.strip().removeprefix("```json").removesuffix("```").strip()
+        data = json.loads(raw)
+        return data
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"Gemini returned invalid JSON: {e}")
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+
+================================================
+FILE: ml_service/tests/.gitkeep
+================================================
+[Empty file]
+
+
+================================================
+FILE: ml_service/utils/gemini_client.py
+================================================
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+_model = genai.GenerativeModel("gemini-1.5-flash")
+
+
+def generate(system_prompt: str, user_prompt: str) -> str:
+    """
+    Send a system + user prompt to Gemini 1.5 Flash and return the text response.
+    """
+    response = _model.generate_content(
+        [
+            {"role": "user", "parts": [system_prompt + "\n\n" + user_prompt]},
+        ]
+    )
+    return response.text
+
+
+
+================================================
+FILE: ml_service/utils/pdf_parser.py
+================================================
+import fitz  # PyMuPDF
+import re
+from typing import Any
+
+SECTION_HEADERS = [
+    "experience", "work experience", "employment",
+    "education", "skills", "technical skills",
+    "projects", "summary", "objective", "certifications",
+    "achievements", "publications", "languages",
+]
+
+
+def parse_pdf(file_bytes: bytes) -> dict[str, Any]:
+    """
+    Parse a PDF resume and extract:
+      - full_text: entire plain text
+      - sections: dict mapping section name → section content
+    """
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
+    full_text = ""
+    for page in doc:
+        full_text += page.get_text("text")
+    doc.close()
+
+    sections = _extract_sections(full_text)
+    return {"full_text": full_text.strip(), "sections": sections}
+
+
+def _extract_sections(text: str) -> dict[str, str]:
+    lines = text.splitlines()
+    sections: dict[str, str] = {}
+    current_section = "header"
+    buffer: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        lower = stripped.lower()
+
+        matched = next((h for h in SECTION_HEADERS if re.fullmatch(rf"{re.escape(h)}[:\s]*", lower)), None)
+        if matched:
+            if buffer:
+                sections[current_section] = "\n".join(buffer).strip()
+            current_section = matched
+            buffer = []
+        else:
+            if stripped:
+                buffer.append(stripped)
+
+    if buffer:
+        sections[current_section] = "\n".join(buffer).strip()
+
+    return sections
+
+
+
+================================================
+FILE: ml_service/utils/scorer.py
+================================================
+import re
+from typing import Any
+
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+
+# Load once at import time (cached globally)
+_bert_model: SentenceTransformer | None = None
+
+
+def _get_bert_model() -> SentenceTransformer:
+    global _bert_model
+    if _bert_model is None:
+        _bert_model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _bert_model
+
+
+def _tokenize(text: str) -> list[str]:
+    """Lower-case word tokenizer, strips punctuation."""
+    return re.findall(r"\b[a-z][a-z0-9+#\.]*\b", text.lower())
+
+
+def score_resume(resume_text: str, jd_text: str) -> dict[str, Any]:
+    """
+    Two-stage scoring:
+      Stage 1 (40%) — TF-IDF keyword overlap
+      Stage 2 (60%) — all-MiniLM-L6-v2 semantic similarity
+
+    Returns:
+      score            : float 0-100
+      matched_keywords : list[str]
+      missing_keywords : list[str]
+    """
+    # ---------- Stage 1: keyword overlap ----------
+    resume_tokens = set(_tokenize(resume_text))
+    jd_tokens = set(_tokenize(jd_text))
+
+    # TF-IDF over JD to extract meaningful keywords (ignore stopwords)
+    vectorizer = TfidfVectorizer(stop_words="english", max_features=60)
+    try:
+        vectorizer.fit([jd_text])
+        jd_keywords = set(vectorizer.get_feature_names_out())
+    except ValueError:
+        jd_keywords = jd_tokens  # fallback if JD too short
+
+    matched = sorted(jd_keywords & resume_tokens)
+    missing = sorted(jd_keywords - resume_tokens)
+
+    keyword_score = len(matched) / max(len(jd_keywords), 1) * 100
+
+    # ---------- Stage 2: semantic similarity ----------
+    model = _get_bert_model()
+    embeddings = model.encode([resume_text[:512], jd_text[:512]])
+    sem_score = float(cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]) * 100
+
+    # ---------- Weighted average ----------
+    final_score = round(0.4 * keyword_score + 0.6 * sem_score, 2)
+
+    return {
+        "score": min(final_score, 100.0),
+        "matched_keywords": matched,
+        "missing_keywords": missing,
+    }
+
+
+
+================================================
+FILE: server/package.json
+================================================
+{
+  "name": "careerlens-server",
+  "version": "1.0.0",
+  "description": "CareerLens Express API",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "form-data": "^4.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.13.14",
+    "@types/pg": "^8.11.11",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.2"
+  }
+}
+
+
+
+================================================
+FILE: server/tsconfig.json
+================================================
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+
+
+
+================================================
+FILE: server/.env.example
+================================================
+# PostgreSQL connection string
+DATABASE_URL=postgresql://your_db_user:your_db_password@localhost:5432/careerlens
+
+# Secret key for signing JWT tokens (use a long random string)
+JWT_SECRET=your_super_secret_jwt_key_here
+
+# Base URL of the ML microservice
+ML_SERVICE_URL=http://localhost:8000
+
+# Port the Express server listens on
+PORT=3001
+
+# Google Gemini API key (get one at https://aistudio.google.com)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+
+
+================================================
+FILE: server/db/migrations.sql
+================================================
+-- CareerLens Database Migrations
+-- Run via: psql $DATABASE_URL -f db/migrations.sql
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          VARCHAR(100) NOT NULL,
+  email         VARCHAR(150) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at    TIMESTAMP DEFAULT NOW()
+);
+
+-- Resume Scores
+CREATE TABLE IF NOT EXISTS resume_scores (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID REFERENCES users(id) ON DELETE CASCADE,
+  resume_text      TEXT,
+  jd_text          TEXT,
+  score            FLOAT,
+  matched_keywords JSONB,
+  missing_keywords JSONB,
+  job_role         VARCHAR(100),
+  created_at       TIMESTAMP DEFAULT NOW()
+);
+
+-- Culture Fit Results
+CREATE TABLE IF NOT EXISTS culture_results (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  answers    JSONB NOT NULL,
+  result     JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Roadmap Tasks
+CREATE TABLE IF NOT EXISTS roadmap_tasks (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  category   VARCHAR(50),
+  task       TEXT NOT NULL,
+  priority   VARCHAR(20) DEFAULT 'medium',
+  status     VARCHAR(20) DEFAULT 'Todo',
+  day_target INT CHECK (day_target IN (30, 60, 90)),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+
+
+================================================
+FILE: server/src/index.ts
+================================================
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+import authRoutes from './routes/auth';
+import resumeRoutes from './routes/resume';
+import cultureFitRoutes from './routes/cultureFit';
+import roadmapRoutes from './routes/roadmap';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3003'], credentials: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/resume', resumeRoutes);
+app.use('/api/culture', cultureFitRoutes);
+app.use('/api/roadmap', roadmapRoutes);
+
+// Health
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Global error handler
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: err.message || 'Internal server error' });
+});
+
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+
+export default app;
+
+
+
+================================================
+FILE: server/src/db/pool.ts
+================================================
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+pool.on('error', (err) => {
+  console.error('Unexpected DB error', err);
+  process.exit(-1);
+});
+
+export default pool;
+
+
+
+================================================
+FILE: server/src/middleware/authMiddleware.ts
+================================================
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+export interface AuthRequest extends Request {
+  userId?: string;
+}
+
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'No token provided' });
+    return;
+  }
+  try {
+    const token = header.split(' ')[1];
+    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+    req.userId = payload.userId;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+
+
+
+================================================
+FILE: server/src/middleware/upload.ts
+================================================
+import multer from 'multer';
+
+export const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files are allowed'));
+  },
+});
+
+
+
+================================================
+FILE: server/src/routes/auth.ts
+================================================
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import pool from '../db/pool';
+
+const router = express.Router();
+
+// POST /api/auth/register
+router.post('/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password)
+    return res.status(400).json({ error: 'All fields required' });
+
+  try {
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length) return res.status(409).json({ error: 'Email already registered' });
+
+    const password_hash = await bcrypt.hash(password, 12);
+    const { rows } = await pool.query(
+      'INSERT INTO users (name, email, password_hash) VALUES ($1,$2,$3) RETURNING id, name, email',
+      [name, email, password_hash]
+    );
+    const user = rows[0];
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+    return res.status(201).json({ token, user });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = rows[0];
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+    return res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+export default router;
+
+
+
+================================================
+FILE: server/src/routes/cultureFit.ts
+================================================
+import express from 'express';
+import axios from 'axios';
+import pool from '../db/pool';
+import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
+
+const router = express.Router();
+const ML = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
+// POST /api/culture
+router.post('/', authMiddleware, async (req: AuthRequest, res) => {
+  const { answers } = req.body;
+  if (!answers || !Array.isArray(answers) || answers.length !== 12)
+    return res.status(400).json({ error: 'Exactly 12 answers required' });
+
+  try {
+    const { data } = await axios.post(`${ML}/ml/culture`, { answers });
+
+    await pool.query(
+      'INSERT INTO culture_results (user_id, answers, result) VALUES ($1,$2,$3)',
+      [req.userId, JSON.stringify(answers), JSON.stringify(data)]
+    );
+    return res.json(data);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Culture fit failed' }); }
+});
+
+// GET /api/culture/latest
+router.get('/latest', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM culture_results WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
+      [req.userId]
+    );
+    return res.json(rows[0] || null);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Server error' }); }
+});
+
+export default router;
+
+
+
+================================================
+FILE: server/src/routes/resume.ts
+================================================
+import express from 'express';
+import FormData from 'form-data';
+import axios from 'axios';
+import pool from '../db/pool';
+import { upload } from '../middleware/upload';
+import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
+
+const router = express.Router();
+const ML = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
+// POST /api/resume/score
+router.post('/score', authMiddleware, upload.single('resume'), async (req: AuthRequest, res) => {
+  const { jd_text, job_role } = req.body;
+  if (!req.file || !jd_text) return res.status(400).json({ error: 'resume PDF and jd_text required' });
+
+  try {
+    const form = new FormData();
+    form.append('resume', req.file.buffer, { filename: 'resume.pdf', contentType: 'application/pdf' });
+    form.append('jd_text', jd_text);
+
+    const { data } = await axios.post(`${ML}/ml/score`, form, { headers: form.getHeaders() });
+    const { score, matched_keywords, missing_keywords, resume_text } = data;
+
+    const { rows } = await pool.query(
+      `INSERT INTO resume_scores (user_id, resume_text, jd_text, score, matched_keywords, missing_keywords, job_role)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [req.userId, resume_text, jd_text, score,
+       JSON.stringify(matched_keywords), JSON.stringify(missing_keywords), job_role || null]
+    );
+    return res.json(rows[0]);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Scoring failed' }); }
+});
+
+// POST /api/resume/enhance
+router.post('/enhance', authMiddleware, upload.single('resume'), async (req: AuthRequest, res) => {
+  const { jd_text } = req.body;
+  if (!req.file || !jd_text) return res.status(400).json({ error: 'resume PDF and jd_text required' });
+
+  try {
+    const form = new FormData();
+    form.append('resume', req.file.buffer, { filename: 'resume.pdf', contentType: 'application/pdf' });
+    form.append('jd_text', jd_text);
+
+    const { data } = await axios.post(`${ML}/ml/enhance`, form, { headers: form.getHeaders() });
+    return res.json(data);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Enhancement failed' }); }
+});
+
+// GET /api/resume/history
+router.get('/history', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM resume_scores WHERE user_id=$1 ORDER BY created_at DESC LIMIT 10',
+      [req.userId]
+    );
+    return res.json(rows);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Server error' }); }
+});
+
+export default router;
+
+
+
+================================================
+FILE: server/src/routes/roadmap.ts
+================================================
+import express from 'express';
+import axios from 'axios';
+import pool from '../db/pool';
+import { authMiddleware, AuthRequest } from '../middleware/authMiddleware';
+
+const router = express.Router();
+const ML = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
+// POST /api/roadmap/generate
+router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
+  const { missing_keywords, top_match, culture_dimensions, job_role } = req.body;
+  if (!missing_keywords || !top_match)
+    return res.status(400).json({ error: 'missing_keywords and top_match required' });
+
+  try {
+    const { data } = await axios.post(`${ML}/ml/roadmap`, {
+      missing_keywords, top_match, culture_dimensions, job_role,
+    });
+
+    // Persist each task
+    const tasks = data.tasks || [];
+    for (const t of tasks) {
+      await pool.query(
+        `INSERT INTO roadmap_tasks (user_id, category, task, priority, day_target)
+         VALUES ($1,$2,$3,$4,$5)`,
+        [req.userId, t.category || 'General', t.task, t.priority || 'medium', t.day_target]
+      );
+    }
+    return res.json({ tasks });
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Roadmap generation failed' }); }
+});
+
+// GET /api/roadmap/tasks
+router.get('/tasks', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM roadmap_tasks WHERE user_id=$1 ORDER BY day_target, created_at',
+      [req.userId]
+    );
+    return res.json(rows);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Server error' }); }
+});
+
+// PATCH /api/roadmap/tasks/:id
+router.patch('/tasks/:id', authMiddleware, async (req: AuthRequest, res) => {
+  const { status } = req.body;
+  const validStatuses = ['Todo', 'In Progress', 'Done'];
+  if (!validStatuses.includes(status))
+    return res.status(400).json({ error: 'status must be Todo | In Progress | Done' });
+
+  try {
+    const { rows } = await pool.query(
+      'UPDATE roadmap_tasks SET status=$1 WHERE id=$2 AND user_id=$3 RETURNING *',
+      [status, req.params.id, req.userId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Task not found' });
+    return res.json(rows[0]);
+  } catch (err) { console.error(err); return res.status(500).json({ error: 'Server error' }); }
+});
+
+export default router;
+
+
+
+================================================
+FILE: server/src/types/index.ts
+================================================
+[Empty file]
+
