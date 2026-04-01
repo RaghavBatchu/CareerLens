@@ -304,12 +304,10 @@ FILE: client/src/App.tsx
 ================================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ResumeScore from './pages/ResumeScore';
-import Enhancer from './pages/Enhancer';
 import CultureFit from './pages/CultureFit';
 import Roadmap from './pages/Roadmap';
 
@@ -321,12 +319,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/resume" element={<PrivateRoute><ResumeScore /></PrivateRoute>} />
-      <Route path="/enhance" element={<PrivateRoute><Enhancer /></PrivateRoute>} />
       <Route path="/culture" element={<PrivateRoute><CultureFit /></PrivateRoute>} />
       <Route path="/roadmap" element={<PrivateRoute><Roadmap /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -815,7 +812,6 @@ import { useAuth } from '../context/AuthContext';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '🏠' },
   { to: '/resume', label: 'Resume Score', icon: '📄' },
-  { to: '/enhance', label: 'AI Enhancer', icon: '✨' },
   { to: '/culture', label: 'Culture Fit', icon: '🧬' },
   { to: '/roadmap', label: 'Roadmap', icon: '🗺️' },
 ];
@@ -953,18 +949,177 @@ export function useAuth(): AuthContextType {
 ================================================
 FILE: client/src/pages/CultureFit.tsx
 ================================================
+import { useState, FormEvent } from 'react';
+import { motion } from 'framer-motion';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import Sidebar from '../components/Sidebar';
+import api from '../api/axios';
+
+const QUESTIONS = [
+  "I prefer working in a fast-paced environment where priorities shift frequently.",
+  "I work best when there is a sense of urgency and rapid delivery.",
+  "I enjoy working closely with cross-functional teams rather than producing work in isolation.",
+  "I believe pair programming and constant communication lead to better outcomes.",
+  "I thrive when there are clear rules, strict processes, and well-defined expectations.",
+  "I prefer to have my daily tasks and long-term goals rigidly structured.",
+  "I am comfortable making decisions even when I don't have all the relevant information.",
+  "Working on deeply ambiguous problems excites me more than clear-cut tickets.",
+  "I prefer direct, immediate, and sometimes blunt feedback on my performance.",
+  "I appreciate regular critique as it helps me improve faster.",
+  "I actively seek out new challenges that force me outside my comfort zone.",
+  "I view failures as a stepping stone rather than a reflection of my abilities."
+];
+
+interface CultureResult {
+  probabilities: Record<string, number>;
+  top_match: string;
+  dimensions: {
+    pace: number;
+    collaboration: number;
+    structure: number;
+    ambiguity_tolerance: number;
+    feedback_style: number;
+    growth_mindset: number;
+  };
+}
 
 export default function CultureFit() {
+  const [answers, setAnswers] = useState<number[]>(Array(12).fill(0));
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CultureResult | null>(null);
+  const [error, setError] = useState('');
+
+  const handleSelect = (idx: number, val: number) => {
+    const newAnswers = [...answers];
+    newAnswers[idx] = val;
+    setAnswers(newAnswers);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (answers.includes(0)) {
+      setError('Please answer all 12 questions.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const { data } = await api.post('/api/culture', { answers });
+      setResult(data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to analyze culture fit.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const radarData = result ? [
+    { metric: 'Pace', score: result.dimensions.pace },
+    { metric: 'Collaboration', score: result.dimensions.collaboration },
+    { metric: 'Structure', score: result.dimensions.structure },
+    { metric: 'Ambiguity', score: result.dimensions.ambiguity_tolerance },
+    { metric: 'Feedback', score: result.dimensions.feedback_style },
+    { metric: 'Growth', score: result.dimensions.growth_mindset },
+  ] : [];
+
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <Sidebar />
       <main className="flex-1 ml-64 p-8">
-        <h1 className="page-title">Culture Fit</h1>
+        <h1 className="page-title">Culture Fit Predictor</h1>
         <p className="page-subtitle">Answer 12 questions to discover your ideal company archetype.</p>
-        <div className="card flex flex-col items-center justify-center py-20 text-slate-500">
-          <div className="text-5xl mb-4">🧬</div>
-          <p className="text-sm">Coming in next session</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Questions Panel */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="card space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {QUESTIONS.map((q, idx) => (
+                <div key={idx} className="space-y-3">
+                  <p className="text-sm text-slate-300 font-medium">{idx + 1}. {q}</p>
+                  <div className="flex justify-between items-center bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <span className="text-xs text-slate-500 w-16">Disagree</span>
+                    {[1, 2, 3, 4, 5].map(val => (
+                      <label key={val} className="flex flex-col items-center cursor-pointer gap-1">
+                        <input
+                          type="radio"
+                          name={`q-${idx}`}
+                          value={val}
+                          checked={answers[idx] === val}
+                          onChange={() => handleSelect(idx, val)}
+                          className="w-4 h-4 accent-purple-500 cursor-pointer"
+                        />
+                        <span className="text-[10px] text-slate-400 font-bold">{val}</span>
+                      </label>
+                    ))}
+                    <span className="text-xs text-slate-500 w-16 text-right">Agree</span>
+                  </div>
+                </div>
+              ))}
+
+              {error && <p className="text-sm text-red-400 px-1">⚠ {error}</p>}
+
+              <button type="submit" className="btn-primary w-full" disabled={loading || answers.includes(0)}>
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Analyzing...
+                  </span>
+                ) : 'Discover Archetype'}
+              </button>
+            </form>
+          </motion.div>
+
+          {/* Results Panel */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="card flex flex-col items-center justify-center">
+            {result ? (
+              <div className="w-full space-y-8 text-center animate-fade-in">
+                <div>
+                  <h3 className="text-slate-400 uppercase tracking-widest text-xs font-bold mb-2">Your Ideal Archetype</h3>
+                  <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-lg">
+                    {result.top_match}
+                  </h2>
+                </div>
+
+                <div className="h-[300px] w-full max-w-md mx-auto relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                      <PolarGrid stroke="#334155" />
+                      <PolarAngleAxis dataKey="metric" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 5]} tick={false} axisLine={false} />
+                      <Radar
+                        name="Traits"
+                        dataKey="score"
+                        stroke="#c084fc"
+                        fill="#c084fc"
+                        fillOpacity={0.5}
+                        strokeWidth={2}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="grid grid-flow-col auto-cols-max gap-4 justify-center text-left flex-wrap">
+                  {Object.entries(result.probabilities)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 3)
+                    .map(([type, prob]) => (
+                      <div key={type} className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 min-w-[100px]">
+                        <p className="text-xs text-slate-400 truncate">{type}</p>
+                        <p className="text-sm font-bold text-slate-200">{(prob * 100).toFixed(1)}%</p>
+                      </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500 text-center">
+                <div className="text-6xl mb-4">🧬</div>
+                <p className="text-sm">Answer the questions to discover your ideal culture fit.</p>
+              </div>
+            )}
+          </motion.div>
         </div>
       </main>
     </div>
@@ -1017,7 +1172,6 @@ export default function Dashboard() {
   const stats: StatCard[] = [
     { label: 'Latest Resume Score', value: latestScore !== null ? `${latestScore.toFixed(0)}` : '—', icon: '📊', color: '#7c3aed', to: '/resume' },
     { label: 'Active Roadmap Tasks', value: taskCount !== null ? String(taskCount) : '—', icon: '🗺️', color: '#34d399', to: '/roadmap' },
-    { label: 'AI Enhancer', value: 'Improve it', icon: '✨', color: '#fbbf24', to: '/enhance' },
     { label: 'Culture Fit', value: 'Take Quiz', icon: '🧬', color: '#f87171', to: '/culture' },
   ];
 
@@ -1034,7 +1188,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stat cards */}
-        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
           {stats.map((s) => (
             <motion.div key={s.label} variants={item}>
               <Link to={s.to} className="block card hover:scale-[1.02] transition-transform duration-200 cursor-pointer group">
@@ -1954,19 +2108,191 @@ export default function ResumeScore() {
 ================================================
 FILE: client/src/pages/Roadmap.tsx
 ================================================
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import api from '../api/axios';
+
+interface Task {
+  id: number;
+  task: string;
+  category: string;
+  status: 'Todo' | 'In Progress' | 'Done';
+  day_target: number;
+  priority: string;
+}
+
+interface ResumeHistory {
+  id: number;
+  score: number;
+  missing_keywords: string;
+  job_role: string;
+  created_at: string;
+}
 
 export default function Roadmap() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [history, setHistory] = useState<ResumeHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [tasksRes, historyRes] = await Promise.all([
+        api.get('/api/roadmap/tasks'),
+        api.get('/api/resume/history')
+      ]);
+      setTasks(tasksRes.data);
+      setHistory(historyRes.data);
+    } catch (err: any) {
+      setError('Failed to load roadmap data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!history.length) return;
+    const latest = history[0];
+    
+    // Parse missing_keywords since it might be a JSON string from the DB
+    let missing = [];
+    try {
+      missing = typeof latest.missing_keywords === 'string' 
+        ? JSON.parse(latest.missing_keywords) 
+        : latest.missing_keywords;
+    } catch (e) {
+      missing = [];
+    }
+
+    try {
+      setGenerating(true);
+      await api.post('/api/roadmap/generate', {
+        missing_keywords: missing,
+        top_match: String(latest.score),
+        job_role: latest.job_role || 'General',
+      });
+      // Re-fetch tasks immediately after generation
+      await fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to generate roadmap. Ensure ML service is running.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleStatusChange = async (taskId: number, newStatus: string) => {
+    try {
+      const res = await api.patch(`/api/roadmap/tasks/${taskId}`, { status: newStatus });
+      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: res.data.status } : t));
+    } catch (err: any) {
+      console.error('Failed to update task status', err);
+    }
+  };
+
+  // Group tasks by day_target
+  const groupedTasks = [30, 60, 90].map(day => {
+    return {
+      day,
+      items: tasks.filter(t => t.day_target === day)
+    };
+  });
+
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <Sidebar />
       <main className="flex-1 ml-64 p-8">
         <h1 className="page-title">Career Roadmap</h1>
         <p className="page-subtitle">Your AI-generated 30/60/90-day skill-building plan.</p>
-        <div className="card flex flex-col items-center justify-center py-20 text-slate-500">
-          <div className="text-5xl mb-4">🗺️</div>
-          <p className="text-sm">Coming in next session</p>
-        </div>
+
+        {error && <p className="text-red-400 mb-4 px-2">⚠ {error}</p>}
+
+        {loading ? (
+          <div className="flex justify-center flex-col items-center h-64 text-slate-400 gap-4">
+             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+             Loading career insights...
+          </div>
+        ) : tasks.length > 0 ? (
+          <div className="space-y-8">
+            {groupedTasks.map(group => group.items.length > 0 && (
+              <motion.div key={group.day} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card">
+                <h2 className="text-xl font-bold mb-4 text-white">
+                  {group.day} Days Target
+                </h2>
+                <div className="space-y-4">
+                  {group.items.map(task => (
+                    <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                      <div className="flex-1 mb-3 sm:mb-0 pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa' }}>
+                            {task.category}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-md ${task.priority?.toLowerCase() === 'high' ? 'bg-red-500/10 text-red-400' : task.priority?.toLowerCase() === 'medium' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400'}`}>
+                            {task.priority || 'Medium'}
+                          </span>
+                        </div>
+                        <p className={`text-sm ${task.status === 'Done' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                          {task.task}
+                        </p>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-3">
+                        <select 
+                          className="input !py-1.5 !px-3 text-sm focus:outline-none bg-slate-800 text-white"
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                        >
+                          <option value="Todo" className="bg-slate-800 text-white">Todo</option>
+                          <option value="In Progress" className="bg-slate-800 text-white">In Progress</option>
+                          <option value="Done" className="bg-slate-800 text-white">Done</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="card flex flex-col items-center justify-center py-20 text-center">
+            <div className="text-6xl mb-4">🗺️</div>
+            <h2 className="text-xl font-bold text-white mb-2">No Roadmap Generated Yet</h2>
+            
+            {history.length > 0 ? (
+              <>
+                <p className="text-slate-400 mb-6 max-w-md">
+                  We can generate a customized 30/60/90-day learning roadmap based on your latest resume score of <strong className="text-white">{Math.round(history[0].score)}/100</strong> for <strong className="text-white">{history[0].job_role || 'General Role'}</strong>.
+                </p>
+                <button onClick={handleGenerate} disabled={generating} className="btn-primary flex items-center gap-2">
+                  {generating ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      Generating Roadmap...
+                    </>
+                  ) : 'Generate Roadmap Now'}
+                </button>
+              </>
+            ) : (
+               <>
+                <p className="text-slate-400 mb-6 max-w-md">
+                  You need to score a resume at least once before we can generate a personalized skill-building roadmap for you.
+                </p>
+                <Link to="/resume" className="btn-primary">
+                  Go to Resume Score
+                </Link>
+               </>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
@@ -2309,27 +2635,22 @@ FILE: ml_service/tests/.gitkeep
 FILE: ml_service/utils/gemini_client.py
 ================================================
 import os
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-
-_model = genai.GenerativeModel("gemini-1.5-flash")
-
+_client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 def generate(system_prompt: str, user_prompt: str) -> str:
     """
-    Send a system + user prompt to Gemini 1.5 Flash and return the text response.
+    Send a system + user prompt to Gemini 2.0 Flash and return the text response.
     """
-    response = _model.generate_content(
-        [
-            {"role": "user", "parts": [system_prompt + "\n\n" + user_prompt]},
-        ]
+    response = _client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=system_prompt + "\n\n" + user_prompt,
     )
     return response.text
-
 
 
 ================================================
@@ -2397,12 +2718,12 @@ import re
 from typing import Any
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
+from keybert import KeyBERT
 
-# Load once at import time (cached globally)
 _bert_model: SentenceTransformer | None = None
+_kw_model: KeyBERT | None = None
 
 
 def _get_bert_model() -> SentenceTransformer:
@@ -2412,53 +2733,129 @@ def _get_bert_model() -> SentenceTransformer:
     return _bert_model
 
 
-def _tokenize(text: str) -> list[str]:
-    """Lower-case word tokenizer, strips punctuation."""
-    return re.findall(r"\b[a-z][a-z0-9+#\.]*\b", text.lower())
+def _get_kw_model() -> KeyBERT:
+    global _kw_model
+    if _kw_model is None:
+        _kw_model = KeyBERT(model=_get_bert_model())
+    return _kw_model
+
+
+TECH_REPLACEMENTS = {
+    r"c\+\+":      "cplusplus",
+    r"c#":         "csharp",
+    r"f#":         "fsharp",
+    r"\.net":      "dotnet",
+    r"asp\.net":   "aspnet",
+    r"node\.js":   "nodejs",
+    r"vue\.js":    "vuejs",
+    r"next\.js":   "nextjs",
+    r"grpc":       "grpc",
+    r"graphql":    "graphql",
+    r"signalr":    "signalr",
+    r"postgresql": "postgresql",
+}
+
+
+def _preprocess(text: str) -> str:
+    t = text.lower()
+    for pattern, replacement in TECH_REPLACEMENTS.items():
+        t = re.sub(pattern, replacement, t)
+    return t
+
+
+def _mean_encode(model: SentenceTransformer, text: str) -> np.ndarray:
+    """
+    Split text into word chunks and average their embeddings.
+    Avoids the [:512 chars] bug that only read the first few lines.
+    """
+    words = text.split()
+    chunk_size = 300  # ~512 tokens safely
+    chunks = [
+        " ".join(words[i: i + chunk_size])
+        for i in range(0, len(words), chunk_size)
+    ]
+    if not chunks:
+        chunks = [""]
+    embeddings = model.encode(chunks)
+    return np.mean(embeddings, axis=0)
+
+
+def _extract_keywords(text: str, top_n: int = 50) -> list[str]:
+    kw_model = _get_kw_model()
+    preprocessed = _preprocess(text)
+    keywords = kw_model.extract_keywords(
+        preprocessed,
+        keyphrase_ngram_range=(1, 2),
+        stop_words="english",
+        use_mmr=True,
+        diversity=0.4,
+        top_n=top_n,
+    )
+    return [kw for kw, score in keywords if score > 0.15]
+
+
+def _semantic_match(
+    jd_keywords: list[str],
+    resume_keywords: list[str],
+    threshold: float = 0.45,
+) -> tuple[list[str], list[str]]:
+    """
+    Semantically match each JD keyword against all resume keywords.
+    A JD keyword is 'matched' if any resume keyword scores above threshold.
+    """
+    model = _get_bert_model()
+
+    if not jd_keywords or not resume_keywords:
+        return [], jd_keywords
+
+    jd_embeddings = model.encode(jd_keywords)         # (n_jd, 384)
+    resume_embeddings = model.encode(resume_keywords)  # (n_resume, 384)
+
+    # Similarity matrix: (n_jd x n_resume)
+    sim_matrix = cosine_similarity(jd_embeddings, resume_embeddings)
+
+    matched = []
+    missing = []
+
+    for i, jd_kw in enumerate(jd_keywords):
+        best_score = float(np.max(sim_matrix[i]))
+        if best_score >= threshold:
+            matched.append(jd_kw)
+        else:
+            missing.append(jd_kw)
+
+    return matched, missing
 
 
 def score_resume(resume_text: str, jd_text: str) -> dict[str, Any]:
     """
     Two-stage scoring:
-      Stage 1 (40%) — TF-IDF keyword overlap
-      Stage 2 (60%) — all-MiniLM-L6-v2 semantic similarity
-
-    Returns:
-      score            : float 0-100
-      matched_keywords : list[str]
-      missing_keywords : list[str]
+      Stage 1 (40%) — KeyBERT + semantic keyword matching
+      Stage 2 (60%) — full-document semantic similarity (chunked)
     """
-    # ---------- Stage 1: keyword overlap ----------
-    resume_tokens = set(_tokenize(resume_text))
-    jd_tokens = set(_tokenize(jd_text))
 
-    # TF-IDF over JD to extract meaningful keywords (ignore stopwords)
-    vectorizer = TfidfVectorizer(stop_words="english", max_features=60)
-    try:
-        vectorizer.fit([jd_text])
-        jd_keywords = set(vectorizer.get_feature_names_out())
-    except ValueError:
-        jd_keywords = jd_tokens  # fallback if JD too short
+    # ---------- Stage 1: keyword extraction + semantic match ----------
+    jd_keywords = _extract_keywords(jd_text, top_n=50)
+    resume_keywords = _extract_keywords(resume_text, top_n=80)
 
-    matched = sorted(jd_keywords & resume_tokens)
-    missing = sorted(jd_keywords - resume_tokens)
+    matched, missing = _semantic_match(jd_keywords, resume_keywords, threshold=0.45)
 
     keyword_score = len(matched) / max(len(jd_keywords), 1) * 100
 
-    # ---------- Stage 2: semantic similarity ----------
+    # ---------- Stage 2: full document semantic similarity ----------
     model = _get_bert_model()
-    embeddings = model.encode([resume_text[:512], jd_text[:512]])
-    sem_score = float(cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]) * 100
+    resume_emb = _mean_encode(model, _preprocess(resume_text))
+    jd_emb = _mean_encode(model, _preprocess(jd_text))
+    sem_score = float(cosine_similarity([resume_emb], [jd_emb])[0][0]) * 100
 
-    # ---------- Weighted average ----------
+    # ---------- Weighted final score ----------
     final_score = round(0.4 * keyword_score + 0.6 * sem_score, 2)
 
     return {
         "score": min(final_score, 100.0),
-        "matched_keywords": matched,
-        "missing_keywords": missing,
+        "matched_keywords": sorted(matched),
+        "missing_keywords": sorted(missing),
     }
-
 
 
 ================================================
@@ -2614,7 +3011,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3003'], credentials: true }));
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3002', 'http://localhost:3003'], credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

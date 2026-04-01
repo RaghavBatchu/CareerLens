@@ -39,7 +39,6 @@ export default function Dashboard() {
   const stats: StatCard[] = [
     { label: 'Latest Resume Score', value: latestScore !== null ? `${latestScore.toFixed(0)}` : '—', icon: '📊', color: '#7c3aed', to: '/resume' },
     { label: 'Active Roadmap Tasks', value: taskCount !== null ? String(taskCount) : '—', icon: '🗺️', color: '#34d399', to: '/roadmap' },
-    { label: 'AI Enhancer', value: 'Improve it', icon: '✨', color: '#fbbf24', to: '/enhance' },
     { label: 'Culture Fit', value: 'Take Quiz', icon: '🧬', color: '#f87171', to: '/culture' },
   ];
 
@@ -56,7 +55,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stat cards */}
-        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
           {stats.map((s) => (
             <motion.div key={s.label} variants={item}>
               <Link to={s.to} className="block card hover:scale-[1.02] transition-transform duration-200 cursor-pointer group">

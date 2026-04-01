@@ -17,6 +17,9 @@ router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
       missing_keywords, top_match, culture_dimensions, job_role,
     });
 
+    // Delete old tasks for this user
+    await pool.query('DELETE FROM roadmap_tasks WHERE user_id=$1', [req.userId]);
+
     // Persist each task
     const tasks = data.tasks || [];
     for (const t of tasks) {
